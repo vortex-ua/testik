@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажер: Системы VR и MR</title>
+    <!-- Подключение Tailwind CSS для современного дизайна -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключение иконок Lucide-react через CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/lucide-static@0.321.0/font/lucide.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Шапка приложения -->
+    <header class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">SVaZR 2026: trenažér</h1>
+                    <p class="text-xs text-indigo-100 mt-0.5">Интерактивный тест из 20 вопросов по системам VR и MR</p>
+                </div>
+            </div>
+            
+            <!-- Переключатель режимов -->
+            <div class="flex bg-black/20 p-1 rounded-xl backdrop-blur-sm">
+                <button id="btn-practice" onclick="setMode('practice')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-white text-indigo-700 shadow-md">
+                    <span class="flex items-center gap-1.5">⚡ Тренировка</span>
+                </button>
+                <button id="btn-exam" onclick="setMode('exam')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-indigo-100 hover:text-white">
+                    <span class="flex items-center gap-1.5">🎓 Экзамен</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Основной контент -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Левая панель: Навигация по вопросам -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col gap-5 self-start">
+            <div>
+                <h3 class="font-bold text-slate-900 text-lg">Прогресс теста</h3>
+                <p class="text-xs text-slate-500 mt-1">Кликни на номер, чтобы перейти к вопросу</p>
+            </div>
+
+            <!-- Сетка номеров вопросов -->
+            <div class="grid grid-cols-5 gap-2" id="questions-nav-grid">
+                <!-- Генерируется динамически через JS -->
+            </div>
+
+            <!-- Легенда -->
+            <div class="pt-4 border-t border-slate-100 flex flex-col gap-2 text-xs text-slate-600">
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded-md bg-slate-100 border border-slate-300 block"></span>
+                    <span>Не отвечен</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded-md bg-indigo-100 border border-indigo-500 block"></span>
+                    <span>Текущий</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded-md bg-emerald-500 block"></span>
+                    <span>Отвечен</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded-md bg-amber-500 block"></span>
+                    <span>Помечен флагом</span>
+                </div>
+            </div>
+
+            <!-- Кнопка сброса -->
+            <button onclick="restartTest()" class="w-full mt-2 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-colors duration-150 flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 15H19" /></svg>
+                Начать заново
+            </button>
+        </div>
+
+        <!-- Центральная часть: Вопрос и варианты -->
+        <div class="lg:col-span-3 flex flex-col gap-6" id="test-workspace">
+            
+            <!-- Окно вопроса -->
+            <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200/80 relative overflow-hidden">
+                <!-- Прогресс-бар -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-slate-100">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300" style="width: 5%;"></div>
+                </div>
+
+                <div class="flex justify-between items-start gap-4 mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-md" id="q-category">SVaZR 2026</span>
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mt-3" id="q-title-display">
+                            <!-- Название вопроса -->
+                        </h2>
+                    </div>
+                    
+                    <!-- Кнопка "Флаг" -->
+                    <button onclick="toggleFlagCurrent()" class="p-2.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all duration-150" title="Пометить вопрос для повторения">
+                        <svg id="flag-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a.5.5 0 01.5-.5h2a.5.5 0 01.487.382l1 4a.5.5 0 01-.487.618H6.5a.5.5 0 00-.5.5v7a.5.5 0 001 0V12h2a.5.5 0 01.487.618l-1 4a.5.5 0 01-.487.382h-2a.5.5 0 01-.5-.5V5z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Подсказка типа вопроса -->
+                <div id="q-type-badge" class="mb-4 text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                    <!-- Заполняется динамически -->
+                </div>
+
+                <!-- Список вариантов -->
+                <div class="flex flex-col gap-3" id="options-container">
+                    <!-- Заполняется динамически -->
+                </div>
+
+                <!-- Кнопки управления шагами -->
+                <div class="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center gap-4">
+                    <button id="btn-prev" onclick="navigateQuestion(-1)" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition-all duration-150 flex items-center gap-2">
+                        ← Назад
+                    </button>
+                    
+                    <button id="btn-action" onclick="handleAction()" class="px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all duration-150 shadow-md shadow-indigo-100 flex items-center gap-2">
+                        Проверить ⚡
+                    </button>
+
+                    <button id="btn-next" onclick="navigateQuestion(1)" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition-all duration-150 flex items-center gap-2">
+                        Вперед →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Окно объяснения/фидбека (скрыто по умолчанию) -->
+            <div id="feedback-panel" class="hidden bg-white p-6 rounded-2xl shadow-sm border transition-all duration-300">
+                <div class="flex gap-4">
+                    <div id="feedback-icon-container" class="p-3 rounded-xl self-start">
+                        <!-- Иконка успеха/ошибки -->
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg" id="feedback-status">Верно!</h4>
+                        <p class="text-sm text-slate-600 mt-2" id="feedback-explanation">
+                            <!-- Текст объяснения -->
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Итоговое модальное окно / Экран результатов -->
+    <div id="results-screen" class="hidden max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8 w-full flex-grow flex flex-col justify-center items-center">
+        <div class="bg-white p-8 sm:p-12 rounded-3xl shadow-sm border border-slate-200/80 w-full text-center flex flex-col items-center">
+            
+            <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6" id="result-badge-bg">
+                <svg id="result-badge-icon" class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"></svg>
+            </div>
+
+            <h2 class="text-3xl font-extrabold text-slate-900" id="result-heading">Тест завершен!</h2>
+            <p class="text-slate-500 mt-2 max-w-md mx-auto" id="result-description">Отличная попытка! Ниже представлены детальные результаты твоего тестирования.</p>
+
+            <!-- Оценка -->
+            <div class="mt-8 grid grid-cols-3 gap-4 w-full max-w-md">
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <span class="block text-2xl font-bold text-slate-900" id="stat-score">0 / 0</span>
+                    <span class="text-xs text-slate-500">Правильных</span>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <span class="block text-2xl font-bold text-slate-900" id="stat-percent">0%</span>
+                    <span class="text-xs text-slate-500">Точность</span>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <span class="block text-2xl font-bold text-slate-900" id="stat-grade">F</span>
+                    <span class="text-xs text-slate-500">Оценка</span>
+                </div>
+            </div>
+
+            <!-- Список ошибок / Детализация -->
+            <div class="w-full text-left mt-10 border-t border-slate-100 pt-8">
+                <h3 class="font-bold text-slate-900 text-lg mb-4">Обзор вопросов с ошибками:</h3>
+                <div id="wrong-answers-list" class="flex flex-col gap-4 max-h-96 overflow-y-auto pr-2">
+                    <!-- Заполняется динамически -->
+                </div>
+            </div>
+
+            <button onclick="restartTest()" class="mt-10 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition-all duration-150 shadow-lg shadow-indigo-100">
+                Пройти тест еще раз
+            </button>
+        </div>
+    </div>
+
+    <!-- Футер -->
+    <footer class="bg-slate-100 border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+        <p>© 2026 SVaZR trenažér. Разработано для идеальной подготовки к экзамену по VR & MR.</p>
+    </footer>
+
+    <!-- Скрипты и базы вопросов -->
+    <script>
+        // Полная база из 20 вопросов на оригинальном словацком языке с разметкой
+        const questionsData = [
+            {
+                id: 1,
+                title: "Urči, z ktorých častí pozostáva tzv. Milgramovo kontinuum (viac správnych odpovedí):",
+                type: "multi", // множественный выбор
+                category: "Klasifikácia",
+                options: [
+                    { id: "A", text: "Reálne prostredie (Real Environment)" },
+                    { id: "B", text: "Rozšírená realita (Augmented Reality - AR)" },
+                    { id: "C", text: "Rozšírená virtualita (Augmented Virtuality - AV)" },
+                    { id: "D", text: "Virtuálne prostredie (Virtual Environment - VR)" },
+                    { id: "E", text: "Umelá inteligencia (AI)" }
+                ],
+                correctAnswers: ["A", "B", "C", "D"],
+                explanation: "Milgramovo kontinuum (virtuálne kontinuum) obsahuje 4 definované oblasti: reálne prostredie, rozšírená realita (AR), rozšírená virtualita (AV) a virtuálne prostredie (VR). Všetko medzi koncami tejto škály sa označuje ako Mixed Reality (MR)."
+            },
+            {
+                id: 2,
+                title: "V rámci MS Hololens gesto ťuknutím s rukou vo vzpriamenej polohe, ktoré je ekvivalent kliknutia myšou na osobnom počítači a zároveň môže slúžiť aj na premiestňovanie objektov sa nazýva:",
+                type: "single", // единичный выбор
+                category: "MS Hololens",
+                options: [
+                    { id: "A", text: "Bloom" },
+                    { id: "B", text: "ťuknutie / Air tap" },
+                    { id: "C", text: "Zoom" },
+                    { id: "D", text: "Grip" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "Gesto 'ťuknutia' (Air tap) je základným gestom v HoloLens pre výber a interakciu s prvkami. Gesto Bloom slúži na otvorenie domovského menu."
+            },
+            {
+                id: 3,
+                title: "Charakterizuj, za čo je zodpovedný VR base station v rámci VR headsetu, v čom je jeho technická úloha:",
+                type: "single",
+                category: "VR Tracking",
+                options: [
+                    { id: "A", text: "Zabezpečuje bezdrôtové napájanie headsetu" },
+                    { id: "B", text: "Je zodpovedný za presné snímanie polohy a orientácie headsetu a ovládačov v priestore" },
+                    { id: "C", text: "Spracováva grafické výpočty namiesto hlavného PC" },
+                    { id: "D", text: "Slúži výhradne na prenos zvuku do slúchadiel" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "Základňová stanica (Base Station / napr. Lighthouse) vysiela infračervené lúče, ktoré senzory na headsete a ovládačoch zachytávajú na presný výpočet ich polohy v 3D priestore."
+            },
+            {
+                id: 4,
+                title: "Čo z nasledovného najlepšie vystihuje eyetracking technológiu:",
+                type: "single",
+                category: "Senzory",
+                options: [
+                    { id: "A", text: "Sledovanie obrysov celého tela používateľa pomocou RGB kamery" },
+                    { id: "B", text: "Technológia umožňujúca meranie očnej aktivity (poloha, pohyb očí, zaostrenie) pomocou infračerveného osvetlenia a kamier" },
+                    { id: "C", text: "Proces renderovania 3D očí pre avatara používateľa" },
+                    { id: "D", text: "Optická ochrana očí pred žiarením z displejov" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "Eyetracking meria smer pohľadu, frekvenciu žmurkania a reakcie zreničiek. Používa sa napríklad pre optimalizáciu výkonu pomocou Foveated Rendering."
+            },
+            {
+                id: 5,
+                title: "Medzi hlavné úlohy kinematického podsystému VR, ktorý simuluje a určuje polohu patrí (viac správnych odpovedí) určovanie:",
+                type: "multi",
+                category: "VR Podsystémy",
+                options: [
+                    { id: "A", text: "určovanie polohy a pohybu používateľa v reálnom čase" },
+                    { id: "B", text: "simulácia fyzickej chôdze v digitálnom priestore bez kolízie so stenami" },
+                    { id: "C", text: "analýza hĺbky farieb na displejoch" },
+                    { id: "D", text: "prepojenie pohybov očí s audio vnemom" }
+                ],
+                correctAnswers: ["A", "B"],
+                explanation: "Kinematický a statokinetický podsystém spracováva lokomóciu (chôdzu/pohyb). Používa zariadenia ako bežecké pásy (Virtuix Omni, Kat Walk) na prenos fyzického pohybu do VR."
+            },
+            {
+                id: 6,
+                title: "Ktorá technológia je v headsete Microsoft HoloLens 2 využívaná na prenos obrazu z projektora do používateľovho zorného poľa?",
+                type: "single",
+                category: "Optika",
+                options: [
+                    { id: "A", text: "Klasické polopriepustné zrkadlá (Birdbath optika)" },
+                    { id: "B", text: "Optické vlnovody (Waveguides)" },
+                    { id: "C", text: "Fresnelove šošovky" },
+                    { id: "D", text: "Pancake šošovky" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "HoloLens 2 využíva tzv. waveguides (optické vlnovody), kde svetlo z mikro-projektorov prechádza cez špeciálne navrhnuté sklenené vrstvy k oku používateľa pomocou riadených odrazov."
+            },
+            {
+                id: 7,
+                title: "Aspen Movie Map bol projekt prostredníctvom, ktorého bola vytvorená simulovaná jazda mestom ASPEN v Colorade. Je uvedené tvrdenie správne alebo nesprávne:",
+                type: "single",
+                category: "História VR",
+                options: [
+                    { id: "A", text: "Správne" },
+                    { id: "B", text: "Nesprávne" }
+                ],
+                correctAnswers: ["A"],
+                explanation: "Tento projekt z roku 1978 (Lippman, Fisher) bol predchodcom moderných systémov typu Street View. Používatelia sa mohli virtuálne pohybovať po uliciach mesta Aspen."
+            },
+            {
+                id: 8,
+                title: "Interakcia medzi MS Hololens a používateľom môže prebiehať (viac správnych odpovedí):",
+                type: "multi",
+                category: "MS Hololens",
+                options: [
+                    { id: "A", text: "spracovaním pohľadu (head gaze / eye gaze)" },
+                    { id: "B", text: "rozpoznaním a trackingom gest rúk (hand tracking)" },
+                    { id: "C", text: "rozoznávaním a ovládaním pomocou hlasu" },
+                    { id: "D", text: "výhradne prostredníctvom externého magnetického pera" }
+                ],
+                correctAnswers: ["A", "B", "C"],
+                explanation: "HoloLens podporuje prirodzené používateľské rozhranie: eye-tracking (pohľad), gesture-tracking (gestá) a voice recognition (hlasové povely)."
+            },
+            {
+                id: 9,
+                title: "Ktoré VR controllers využívajú technológiu TruTouch haptiky, ktorá umožňuje jemnejšie a presnejšie vibrácie pri interakcii s virtuálnymi objektmi v prostredí?",
+                type: "single",
+                category: "VR Periférie",
+                options: [
+                    { id: "A", text: "HTC Vive Controllers" },
+                    { id: "B", text: "Touch Plus Controllers (využívané s Meta Quest 3)" },
+                    { id: "C", text: "Valve Index 'Knuckles' Controllers" },
+                    { id: "D", text: "Oculus Dev Kit 2 Controllers" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "Touch Plus ovládače pre Meta Quest 3 prinášajú pokročilú lokalizovanú haptiku TruTouch pre detailnejšie hmatové vnemy (vibrácie)."
+            },
+            {
+                id: 10,
+                title: "Aký typ vstupných zariadení sa používa na interakciu s prostredím vo virtuálnej realite a to na manipuláciu s predmetmi a navigáciu v digitálnom priestore?",
+                type: "single",
+                category: "VR Periférie",
+                options: [
+                    { id: "A", text: "Svetelné projektory" },
+                    { id: "B", text: "VR Controllers (špecializované ovládače)" },
+                    { id: "C", text: "Waveguide optické moduly" },
+                    { id: "D", text: "Fiducialne značky" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "Na manipuláciu s virtuálnymi prvkami v trojrozmernom priestore slúžia ergonomické špecializované VR ovládače."
+            },
+            {
+                id: 11,
+                title: "Ak by som chcel sledovať pohyb rúk v blízkosti zariadenia MS Hololens 2 (do 1 metra), ktorý senzor alebo režim použiť?",
+                type: "single",
+                category: "MS Hololens",
+                options: [
+                    { id: "A", text: "Long Throw" },
+                    { id: "B", text: "AHAT (Articulated Hand Tracking)" },
+                    { id: "C", text: "VLC (Visible Light Cameras)" },
+                    { id: "D", text: "RigNode tracking" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "Hĺbková kamera na HoloLens 2 využíva pre detekciu pohybov rúk a prstov v tesnej blízkosti režim AHAT (Articulated Hand Tracking), pracujúci pri vyššom framerate (~45 fps)."
+            },
+            {
+                id: 12,
+                title: "Vyber z možností (viac správnych odpovedí). V rámci MS Hololens 2 je súčasťou hardvéru aj Inerciálna jednotka merania (IMU), ktorá obsahuje:",
+                type: "multi",
+                category: "MS Hololens",
+                options: [
+                    { id: "A", text: "Akcelerometer" },
+                    { id: "B", text: "Gyroskop" },
+                    { id: "C", text: "Magnetometer" },
+                    { id: "D", text: "Barometer" }
+                ],
+                correctAnswers: ["A", "B", "C"],
+                explanation: "Jednotka IMU (Inertial Measurement Unit) štandardne pozostáva z akcelerometra (zrýchlenie), gyroskopu (rotácia) a magnetometra (orientácia voči svetovým stranám)."
+            },
+            {
+                id: 13,
+                title: "Ktorá z nasledovných jednotiek je určená ako špecializovaný hardvérový komponent, ktorý sa bežne používa v náhlavných súpravách pre vykresľovanie a spracovanie holografických obrazov?",
+                type: "single",
+                category: "VR Hardware",
+                options: [
+                    { id: "A", text: "CPU (Central Processing Unit)" },
+                    { id: "B", text: "HPU (Holographic Processing Unit)" },
+                    { id: "C", text: "IMU (Inertial Measurement Unit)" },
+                    { id: "D", text: "VLC (Visible Light Unit)" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "HPU (Holographic Processing Unit) je koprocesor od Microsoftu navrhnutý špeciálne pre spracovanie obrovského množstva senzorických dát v reálnom čase na stabilné vykreslenie holografických prvkov."
+            },
+            {
+                id: 14,
+                title: "Vyberte z nižšie uvedených možností (viac správnych odpovedí). Jedna z úrovní - sieťová vrstva /Networking layer/ podľa návrhu architektúry virtuálnej reality podľa Naji Alzazu kladie dôraz (trend) na nasledovné:",
+                type: "multi",
+                category: "Architektúra VR",
+                options: [
+                    { id: "A", text: "WLAN orientovaný VR model" },
+                    { id: "B", text: "Oddelenie výpočtového výkonu" },
+                    { id: "C", text: "Minimalizácia latencie" },
+                    { id: "D", text: "QoS (Quality of Service)" },
+                    { id: "E", text: "Manuálne renderovanie textúr offline" }
+                ],
+                correctAnswers: ["A", "B", "C", "D"],
+                explanation: "Sietová úroveň podľa Alzazu sa zameriava na oddelenie výpočtov, stabilné bezdrôtové prepojenie (WLAN model), nízku latenciu na zamedzenie straty imerzie a zaistenie Quality of Service (QoS)."
+            },
+            {
+                id: 15,
+                title: "Je uvedené tvrdenie správne alebo nesprávne? Augmented /AR/ tzv. rozšírenú realitu možno definovať ako systém, ktorý: nekombinuje reálne a syntetické prostredie, nie je možné vidieť súčasne virtuálne a reálne prostredie, ide o neinteraktívny spôsob.",
+                type: "single",
+                category: "Klasifikácia",
+                options: [
+                    { id: "A", text: "Správne" },
+                    { id: "B", text: "Nesprávne" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "Definícia AR hovorí o pravom opaku: AR KOMBINOUJE reálne a virtuálne prostredie, je interaktívna v reálnom čase a pracuje v 3D (definícia podľa R. Azumu)."
+            },
+            {
+                id: 16,
+                title: "Stručne charakterizujte a vysvetlite princíp činnosti Inside-Out tracking:",
+                type: "single",
+                category: "VR Tracking",
+                options: [
+                    { id: "A", text: "Používa externé základňové stanice umiestnené v rohoch miestnosti (Lighthouse) na snímanie fotodiód" },
+                    { id: "B", text: "Využíva kamery, hĺbkové senzory a IMU umiestnené priamo na headsete pre vizuálnu odometriu a mapovanie prostredia bez externých senzorov" },
+                    { id: "C", text: "Funguje výhradne na prenose dát z magnetického obleku používateľa" },
+                    { id: "D", text: "Sníma pohyb očí na výpočet interpolácie obrazu" }
+                ],
+                correctAnswers: ["B"],
+                explanation: "Pri Inside-Out trackingu headset nepotrebuje žiadne vonkajšie senzory (base stations). Sám pomocou vstavaných kamier hľadá záchytné body v miestnosti a vypočítava svoju vlastnú polohu."
+            },
+            {
+                id: 17,
+                title: "Ktoré z nasledovných sú príkladmi na špecializované mechanické zariadenia na lokomóciu (pohyb) vo virtuálnej realite (viac správnych odpovedí):",
+                type: "multi",
+                category: "VR Periférie",
+                options: [
+                    { id: "A", text: "Virtuix Omni" },
+                    { id: "B", text: "Kat Walk" },
+                    { id: "C", text: "InfinaDeck" },
+                    { id: "D", text: "Microsoft Kinect" },
+                    { id: "E", text: "Oculus Touch" }
+                ],
+                correctAnswers: ["A", "B", "C"],
+                explanation: "Virtuix Omni, Kat Walk a InfinaDeck sú všesmerové bežecké pásy (Omnidirectional Treadmills) určené pre prirodzenú simuláciu chôdze a behu vo VR."
+            },
+            {
+                id: 18,
+                title: "Virtuálnu realitu môžeme definovať ako počítačový systém vytvárajúci ilúziu v danom čase neexistujúceho priestoru alebo tzv. dokonalej simulácii v prostredí tesného spojenia človek-počítač. Je uvedené tvrdenie správne alebo nesprávne:",
+                type: "single",
+                category: "Klasifikácia",
+                options: [
+                    { id: "A", text: "Správne" },
+                    { id: "B", text: "Nesprávne" }
+                ],
+                correctAnswers: ["A"],
+                explanation: "Toto je presné akademické zadefinovanie virtuálnej reality (VR) nachádzajúce sa v prezentácii."
+            },
+            {
+                id: 19,
+                title: "Oblasť počítačového výskumu zaoberajúca sa kombináciou syntetických objektov, ktoré sú vmiešavané do reálneho prostredia v reálnom čase a môžeme s nimi interagovať sa nazýva:",
+                type: "single",
+                category: "Klasifikácia",
+                options: [
+                    { id: "A", text: "Zmiešaná realita (MR / Mixed Reality)" },
+                    { id: "B", text: "Virtuálna realita (VR)" },
+                    { id: "C", text: "Čuchový podsystém" },
+                    { id: "D", text: "MOCAP pasívna metóda" }
+                ],
+                correctAnswers: ["A"],
+                explanation: "Zmiešaná realita (Mixed Reality) pokrýva celé spektrum prepájania virtuálneho a reálneho sveta, kde spolu reálne a syntetické objekty interagujú."
+            },
+            {
+                id: 20,
+                title: "Ktoré z nasledovných tvrdení o Pancake šošovkách (v porovnaní s Fresnelovými) sú správne (viac správnych odpovedí):",
+                type: "multi",
+                category: "Optika",
+                options: [
+                    { id: "A", text: "Umožňujú urobiť headset tenším, menším a ľahším" },
+                    { id: "B", text: "Eliminujú svetelné pruhy a odlesky typu 'God-rays'" },
+                    { id: "C", text: "Sú rozdelené na kruhové prstence" },
+                    { id: "D", text: "Obraz v nich vzniká viacnásobnými optickými odrazmi" },
+                    { id: "E", text: "Vytvárajú výrazne silnejší Halo efekt" }
+                ],
+                correctAnswers: ["A", "B", "D"],
+                explanation: "Pancake šošovky skracujú vzdialenosť medzi displejom a okom vďaka viacnásobným odrazom svetla, odstraňujú problémy Fresnelových šošoviek (ako sú kruhové zárezy a 'God-rays'), čím umožňujú elegantnejší dizajn headsetov."
+            }
+        ];
+
+        // Глобальное состояние
+        let currentMode = 'practice'; // 'practice' или 'exam'
+        let currentQuestionIndex = 0;
+        let userAnswers = {}; // { questionId: ["A", "B"] }
+        let flaggedQuestions = {}; // { questionId: true/false }
+        let answeredQuestions = {}; // { questionId: true/false }
+        let practiceChecked = {}; // { questionId: true/false } - проверен ли вопрос в режиме практики
+
+        // Инициализация интерфейса
+        window.onload = function() {
+            renderNavGrid();
+            showQuestion(0);
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            const btnPractice = document.getElementById('btn-practice');
+            const btnExam = document.getElementById('btn-exam');
+
+            if (mode === 'practice') {
+                btnPractice.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-white text-indigo-700 shadow-md";
+                btnExam.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-indigo-100 hover:text-white";
+            } else {
+                btnExam.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-white text-indigo-700 shadow-md";
+                btnPractice.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-indigo-100 hover:text-white";
+            }
+
+            restartTestKeepMode();
+        }
+
+        function restartTestKeepMode() {
+            userAnswers = {};
+            flaggedQuestions = {};
+            answeredQuestions = {};
+            practiceChecked = {};
+            currentQuestionIndex = 0;
+            
+            document.getElementById('test-workspace').classList.remove('hidden');
+            document.getElementById('results-screen').classList.add('hidden');
+            
+            renderNavGrid();
+            showQuestion(0);
+        }
+
+        function restartTest() {
+            setMode('practice');
+        }
+
+        // Отрисовка левой навигации
+        function renderNavGrid() {
+            const grid = document.getElementById('questions-nav-grid');
+            grid.innerHTML = '';
+
+            questionsData.forEach((q, idx) => {
+                const btn = document.createElement('button');
+                btn.innerText = q.id;
+                
+                // Классы по умолчанию
+                let btnClasses = "h-11 rounded-xl text-sm font-bold border transition-all duration-150 flex items-center justify-center ";
+
+                if (idx === currentQuestionIndex) {
+                    // Текущий вопрос
+                    btnClasses += "bg-indigo-100 border-indigo-500 text-indigo-700 ring-2 ring-indigo-400 ring-offset-1";
+                } else if (flaggedQuestions[q.id]) {
+                    // Помечен флагом
+                    btnClasses += "bg-amber-500 border-amber-600 text-white hover:bg-amber-600";
+                } else if (answeredQuestions[q.id]) {
+                    // Отвечен
+                    btnClasses += "bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600";
+                } else {
+                    // Не отвечен
+                    btnClasses += "bg-white hover:bg-slate-100 border-slate-200 text-slate-700";
+                }
+
+                btn.className = btnClasses;
+                btn.onclick = () => {
+                    saveAnswersFromUI();
+                    currentQuestionIndex = idx;
+                    showQuestion(idx);
+                };
+
+                grid.appendChild(btn);
+            });
+        }
+
+        // Показ конкретного вопроса
+        function showQuestion(index) {
+            const q = questionsData[index];
+            
+            // Категория и прогресс-бар
+            document.getElementById('q-category').innerText = q.category;
+            const progressPercent = ((index + 1) / questionsData.length) * 100;
+            document.getElementById('progress-bar').style.width = progressPercent + "%";
+
+            // Текст вопроса
+            document.getElementById('q-title-display').innerText = q.title;
+
+            // Тип вопроса
+            const typeBadge = document.getElementById('q-type-badge');
+            if (q.type === 'multi') {
+                typeBadge.innerHTML = `<span class="bg-blue-50 text-blue-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md">Viac správnych odpovedí</span>`;
+            } else {
+                typeBadge.innerHTML = `<span class="bg-slate-100 text-slate-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md">Jedna správna odpoveď</span>`;
+            }
+
+            // Флаг на текущем вопросе
+            const flagIcon = document.getElementById('flag-icon');
+            if (flaggedQuestions[q.id]) {
+                flagIcon.setAttribute('fill', 'currentColor');
+                flagIcon.setAttribute('class', 'w-6 h-6 text-amber-500');
+            } else {
+                flagIcon.setAttribute('fill', 'none');
+                flagIcon.setAttribute('class', 'w-6 h-6 text-slate-400');
+            }
+
+            // Рендер вариантов ответа
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            const currentSaved = userAnswers[q.id] || [];
+            const isPracticeChecked = currentMode === 'practice' && practiceChecked[q.id];
+
+            q.options.forEach(opt => {
+                const optButton = document.createElement('div');
+                const isSelected = currentSaved.includes(opt.id);
+                const isCorrect = q.correctAnswers.includes(opt.id);
+
+                let cardClasses = "p-4 rounded-xl border-2 transition-all duration-150 cursor-pointer flex items-center justify-between ";
+                
+                if (isPracticeChecked) {
+                    // Подсвечиваем результаты в режиме практики
+                    if (isCorrect) {
+                        cardClasses += "bg-emerald-50 border-emerald-500 text-emerald-900";
+                    } else if (isSelected && !isCorrect) {
+                        cardClasses += "bg-rose-50 border-rose-400 text-rose-900";
+                    } else {
+                        cardClasses += "bg-slate-50 border-slate-200 text-slate-400";
+                    }
+                } else {
+                    // Обычное выделение при выборе
+                    if (isSelected) {
+                        cardClasses += "bg-indigo-50/50 border-indigo-500 text-indigo-900 font-medium";
+                    } else {
+                        cardClasses += "bg-white hover:bg-slate-50/50 border-slate-200 hover:border-slate-300 text-slate-700";
+                    }
+                }
+
+                optButton.className = cardClasses;
+                
+                // Чекбокс/Радио кружок дизайн
+                let markerHtml = "";
+                if (q.type === 'multi') {
+                    markerHtml = isSelected 
+                        ? `<span class="w-5 h-5 rounded-md bg-indigo-600 border border-indigo-600 flex items-center justify-center text-white text-xs">✓</span>`
+                        : `<span class="w-5 h-5 rounded-md bg-white border border-slate-300"></span>`;
+                } else {
+                    markerHtml = isSelected 
+                        ? `<span class="w-5 h-5 rounded-full bg-indigo-600 border border-indigo-600 flex items-center justify-center"><span class="w-2 h-2 rounded-full bg-white"></span></span>`
+                        : `<span class="w-5 h-5 rounded-full bg-white border border-slate-300"></span>`;
+                }
+
+                // В режиме практики добавляем маркеры верного/неверного ответа
+                if (isPracticeChecked) {
+                    if (isCorrect) {
+                        markerHtml = `<span class="text-emerald-600 font-bold flex items-center gap-1">✓ Správne</span>`;
+                    } else if (isSelected && !isCorrect) {
+                        markerHtml = `<span class="text-rose-600 font-bold flex items-center gap-1">✗ Nesprávne</span>`;
+                    } else {
+                        markerHtml = "";
+                    }
+                }
+
+                optButton.innerHTML = `
+                    <span class="flex-1 pr-4">${opt.id}) ${opt.text}</span>
+                    <div class="flex-shrink-0">${markerHtml}</div>
+                `;
+
+                // Обработчик клика
+                if (!isPracticeChecked) {
+                    optButton.onclick = () => selectOption(q.id, opt.id, q.type);
+                }
+
+                container.appendChild(optButton);
+            });
+
+            // Настройка кнопок управления
+            document.getElementById('btn-prev').disabled = index === 0;
+            document.getElementById('btn-prev').style.opacity = index === 0 ? "0.4" : "1";
+
+            const btnAction = document.getElementById('btn-action');
+            const feedbackPanel = document.getElementById('feedback-panel');
+
+            if (currentMode === 'practice') {
+                if (isPracticeChecked) {
+                    btnAction.innerText = "Nasledujúca otázka →";
+                    btnAction.onclick = () => navigateQuestion(1);
+                    showPracticeFeedback(q);
+                } else {
+                    btnAction.innerText = "Skontrolovať ⚡";
+                    btnAction.onclick = () => checkPracticeAnswer(q);
+                    feedbackPanel.classList.add('hidden');
+                }
+            } else {
+                // В режиме экзамена
+                feedbackPanel.classList.add('hidden');
+                if (index === questionsData.length - 1) {
+                    btnAction.innerText = "Ukončiť a vyhodnotiť 🎓";
+                    btnAction.onclick = () => finishExam();
+                } else {
+                    btnAction.innerText = "Uložiť a ďalej →";
+                    btnAction.onclick = () => {
+                        answeredQuestions[q.id] = (userAnswers[q.id] && userAnswers[q.id].length > 0);
+                        renderNavGrid();
+                        navigateQuestion(1);
+                    };
+                }
+            }
+
+            renderNavGrid();
+        }
+
+        // Переключение флага для текущего вопроса
+        function toggleFlagCurrent() {
+            const q = questionsData[currentQuestionIndex];
+            flaggedQuestions[q.id] = !flaggedQuestions[q.id];
+            showQuestion(currentQuestionIndex);
+        }
+
+        // Выбор варианта ответа
+        function selectOption(qId, optId, type) {
+            if (!userAnswers[qId]) {
+                userAnswers[qId] = [];
+            }
+
+            if (type === 'single') {
+                userAnswers[qId] = [optId];
+            } else {
+                const index = userAnswers[qId].indexOf(optId);
+                if (index > -1) {
+                    userAnswers[qId].splice(index, 1);
+                } else {
+                    userAnswers[qId].push(optId);
+                }
+            }
+
+            // Помечаем вопрос как отвеченный, если выбрана хотя бы одна опция
+            answeredQuestions[qId] = userAnswers[qId].length > 0;
+
+            showQuestion(currentQuestionIndex);
+        }
+
+        // Навигация
+        function navigateQuestion(direction) {
+            const nextIndex = currentQuestionIndex + direction;
+            if (nextIndex >= 0 && nextIndex < questionsData.length) {
+                currentQuestionIndex = nextIndex;
+                showQuestion(currentQuestionIndex);
+            }
+        }
+
+        function saveAnswersFromUI() {
+            // Опционально, если бы у нас были текстовые поля, но у нас все интерактивно
+        }
+
+        // Проверка ответа в режиме тренировки
+        function checkPracticeAnswer(q) {
+            practiceChecked[q.id] = true;
+            answeredQuestions[q.id] = true;
+            showQuestion(currentQuestionIndex);
+        }
+
+        // Показ блока фидбека в режиме практики
+        function showPracticeFeedback(q) {
+            const panel = document.getElementById('feedback-panel');
+            const iconContainer = document.getElementById('feedback-icon-container');
+            const statusText = document.getElementById('feedback-status');
+            const expText = document.getElementById('feedback-explanation');
+
+            const current = userAnswers[q.id] || [];
+            const isCorrect = current.length === q.correctAnswers.length && current.every(val => q.correctAnswers.includes(val));
+
+            panel.classList.remove('hidden');
+
+            if (isCorrect) {
+                panel.className = "bg-emerald-50 border border-emerald-200 p-6 rounded-2xl shadow-sm transition-all duration-300";
+                iconContainer.className = "p-3 rounded-xl bg-emerald-500 text-white self-start flex items-center justify-center";
+                iconContainer.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>`;
+                statusText.innerText = "Výborne! Správna odpoveď.";
+                statusText.className = "font-bold text-lg text-emerald-900";
+            } else {
+                panel.className = "bg-rose-50 border border-rose-200 p-6 rounded-2xl shadow-sm transition-all duration-300";
+                iconContainer.className = "p-3 rounded-xl bg-rose-500 text-white self-start flex items-center justify-center";
+                iconContainer.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>`;
+                statusText.innerText = "Nesprávne.";
+                statusText.className = "font-bold text-lg text-rose-900";
+            }
+
+            expText.innerHTML = `
+                <div class="mt-1">
+                    <span class="font-semibold">Správna odpoveď:</span> 
+                    <span class="bg-white px-2 py-0.5 rounded border border-slate-200 font-bold ml-1">${q.correctAnswers.join(", ")}</span>
+                </div>
+                <div class="mt-3 text-slate-700 leading-relaxed border-t border-slate-200/60 pt-3 text-sm">
+                    ${q.explanation}
+                </div>
+            `;
+        }
+
+        // Завершение экзамена
+        function finishExam() {
+            // Подсчет результатов
+            let correctCount = 0;
+            const wrongAnswers = [];
+
+            questionsData.forEach(q => {
+                const ans = userAnswers[q.id] || [];
+                const isCorrect = ans.length === q.correctAnswers.length && ans.every(v => q.correctAnswers.includes(v));
+
+                if (isCorrect) {
+                    correctCount++;
+                } else {
+                    wrongAnswers.push({
+                        q: q,
+                        user: ans
+                    });
+                }
+            });
+
+            // Рендер результатов
+            document.getElementById('test-workspace').classList.add('hidden');
+            const resultsScreen = document.getElementById('results-screen');
+            resultsScreen.classList.remove('hidden');
+
+            const scoreText = `${correctCount} / ${questionsData.length}`;
+            const percent = Math.round((correctCount / questionsData.length) * 100);
+            
+            document.getElementById('stat-score').innerText = scoreText;
+            document.getElementById('stat-percent').innerText = `${percent}%`;
+
+            // Шкала оценок
+            let grade = 'A';
+            let badgeBg = "bg-emerald-500 text-white shadow-lg shadow-emerald-100";
+            let badgeIcon = `<svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>`;
+            
+            if (percent >= 90) {
+                grade = 'A';
+            } else if (percent >= 80) {
+                grade = 'B';
+                badgeBg = "bg-teal-500 text-white shadow-lg shadow-teal-100";
+            } else if (percent >= 70) {
+                grade = 'C';
+                badgeBg = "bg-blue-500 text-white shadow-lg shadow-blue-100";
+            } else if (percent >= 60) {
+                grade = 'D';
+                badgeBg = "bg-amber-500 text-white shadow-lg shadow-amber-100";
+            } else if (percent >= 50) {
+                grade = 'E';
+                badgeBg = "bg-orange-500 text-white shadow-lg shadow-orange-100";
+            } else {
+                grade = 'Fx';
+                badgeBg = "bg-rose-500 text-white shadow-lg shadow-rose-100";
+                badgeIcon = `<svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+            }
+
+            document.getElementById('stat-grade').innerText = grade;
+            document.getElementById('result-badge-bg').className = "w-24 h-24 rounded-2xl flex items-center justify-center mb-6 " + badgeBg;
+            document.getElementById('result-badge-icon').innerHTML = badgeIcon;
+
+            // Заполняем список ошибок
+            const listContainer = document.getElementById('wrong-answers-list');
+            listContainer.innerHTML = '';
+
+            if (wrongAnswers.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="bg-emerald-50 text-emerald-800 p-6 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                        <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span class="font-medium">Bez chýb! Gratulujeme, dosiahol si plný počet bodov!</span>
+                    </div>
+                `;
+            } else {
+                wrongAnswers.forEach(item => {
+                    const block = document.createElement('div');
+                    block.className = "bg-slate-50 border border-slate-200/80 p-5 rounded-2xl flex flex-col gap-2.5";
+                    
+                    block.innerHTML = `
+                        <div class="flex items-start justify-between gap-2 border-b border-slate-200/60 pb-2">
+                            <span class="font-bold text-slate-800 text-sm">Otázka ${item.q.id} (${item.q.category})</span>
+                            <span class="text-xs bg-rose-50 text-rose-600 font-bold px-2 py-0.5 rounded-md">Nesprávne</span>
+                        </div>
+                        <p class="font-medium text-slate-950 text-sm">${item.q.title}</p>
+                        <div class="flex flex-col gap-1 text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-100">
+                            <div><span class="font-semibold text-rose-600">Tvoja odpoveď:</span> <span class="font-mono bg-slate-50 border border-slate-150 px-1 rounded">${item.user.length > 0 ? item.user.join(", ") : "Žiadna"}</span></div>
+                            <div class="mt-1"><span class="font-semibold text-emerald-600">Správna odpoveď:</span> <span class="font-mono bg-emerald-50 border border-emerald-100 px-1 rounded font-bold">${item.q.correctAnswers.join(", ")}</span></div>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed bg-slate-100/50 p-2.5 rounded-lg border border-slate-200/40">${item.q.explanation}</p>
+                    `;
+                    listContainer.appendChild(block);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
